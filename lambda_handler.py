@@ -14,7 +14,7 @@ def lambda_handler(event, context):
     report_id = str(datetime.datetime.today().date() - datetime.timedelta(days=1))
 
     log('Gathering data')
-    response_json = urllib2.urlopen("http://www.forthroadbridge.org/Umbraco/Api/Windspeed/GetWindfeedHistory").read()
+    response_json = urllib2.urlopen("http://www.theforthbridges.org/Umbraco/Api/Windspeed/GetWindfeedHistory").read()
     obj = json.loads(response_json)
 
     data = wind_speed.extract_data(obj)
@@ -28,7 +28,7 @@ def lambda_handler(event, context):
     s3 = boto3.resource('s3')
     data = open(xslx_file, 'rb')
     key = 'wind-speed-' + report_id + '.xlsx'
-    s3.Bucket('wind-speed-reports').put_object(Key=key, Body=data)    
+    s3.Bucket('wind-speed-reports').put_object(Key=key, Body=data)
     url = boto3.client('s3').generate_presigned_url('get_object', {"Bucket": BUCKET_NAME, "Key": key }, ExpiresIn=604800)
 
     log('Download from: ' + url)
@@ -38,12 +38,13 @@ def lambda_handler(event, context):
     msg += wind_speed.make_report(obj)
     msg +='\n</pre>\n'
     msg += '<a href="'+url+'">Click here to download the spreadsheet (including chart)</a>'
+    msg += '\n\n<a href="http://wind-speed-reports.s3-website-eu-west-1.amazonaws.com/">Click here for all the previous reports</a>'
 
     log('\n' + msg)
 
     log('Sending emails')
     send_email(RECIPIENT_EMAIL, "Forth Bridge Wind Speed Report: " + report_id, msg)
-    
+
     log('Complete.')
 
 
@@ -55,8 +56,8 @@ def send_email(recipient, subject, body):
     post_data = {
         'from': 'do-not-reply@windspeedservice.com',
         'to': recipient,
-        #'cc': 'someone@somewhere.com',
-        'subject': subject,        
+        'cc': 'tom.pierce0@gmail.com',
+        'subject': subject,
         'html': body
         }
 
